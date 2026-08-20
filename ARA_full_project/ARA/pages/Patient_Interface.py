@@ -162,8 +162,8 @@ with chat_tab:
                     st.write(reply)
                 except RuntimeError as e:
                     st.error(
-                        f"Claude API error: {e}\n\n"
-                        "Ask the camp organizer to check the ANTHROPIC_API_KEY setup."
+                        f"Gemini API error: {e}\n\n"
+                        "Ask the camp organizer to check the GEMINI_API_KEY setup."
                     )
                 except Exception as e:
                     st.error(f"Something went wrong: {e}")
