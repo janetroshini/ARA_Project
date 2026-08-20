@@ -27,10 +27,10 @@ db.init_db()
 
 def check_api_key():
     try:
-        return bool(st.secrets.get("ANTHROPIC_API_KEY"))
+        return bool(st.secrets.get("GEMINI_API_KEY"))
     except Exception:
         import os
-        return bool(os.environ.get("ANTHROPIC_API_KEY"))
+        return bool(os.environ.get("GEMINI_API_KEY"))
 
 
 # --- Header -----------------------------------------------------------------
@@ -48,7 +48,7 @@ st.markdown(
 
 if not check_api_key():
     st.warning(
-        "⚠️ **ANTHROPIC_API_KEY is not set.** The Explainer and CareCompanion agents "
+        "⚠️ **GEMINI_API_KEY is not set.** The Explainer and CareCompanion agents "
         "need it to generate patient-friendly reports and chat replies. Add it to "
         "`.streamlit/secrets.toml` locally, or in your Streamlit Community Cloud "
         "app's **Settings → Secrets** panel.",
