@@ -38,7 +38,7 @@ TRIAGE_THRESHOLDS = {
 # Free-tier Gemini model. "gemini-1.5-flash" is the free/low-cost tier as
 # of this writing; check https://ai.google.dev/pricing if Google changes
 # their lineup and swap the name here only — nothing else needs to change.
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 
 
 def get_secret(key: str, default=None):
