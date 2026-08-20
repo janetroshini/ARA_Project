@@ -158,8 +158,8 @@ with tab_screen:
                 except RuntimeError as e:
                     result = None
                     st.error(
-                        f"Claude API error: {e}\n\n"
-                        "Check that ANTHROPIC_API_KEY is set in Secrets."
+                        f"Gemini API error: {e}\n\n"
+                        "Check that GEMINI_API_KEY is set in Secrets."
                     )
                 except Exception as e:
                     result = None
