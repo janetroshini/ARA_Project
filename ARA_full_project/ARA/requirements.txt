@@ -4,5 +4,5 @@ numpy
 pandas
 scipy
 opencv-python-headless
-anthropic
+google-generativeai
 joblib
