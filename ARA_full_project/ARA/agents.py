@@ -7,12 +7,13 @@ The agentic AI layer of ARA, matching the pipeline in the project doc:
                                                               |
                                                       CareCompanion Agent
 
-Only the Explainer and CareCompanion agents call the Claude API — Intake,
-Diagnostic, and Triage are deterministic/rule-based on purpose (patient
-data validation and the ML prediction shouldn't depend on an LLM call
-that could hallucinate a number). This keeps the system fast, cheap, and
-auditable: Claude is used for what it's actually good at (turning a
-structured result into a clear, kind explanation), not for arithmetic.
+Only the Explainer and CareCompanion agents call an LLM (Google Gemini,
+free tier) — Intake, Diagnostic, and Triage are deterministic/rule-based
+on purpose (patient data validation and the ML prediction shouldn't
+depend on an LLM call that could hallucinate a number). This keeps the
+system fast, cheap, and auditable: the LLM is used for what it's
+actually good at (turning a structured result into a clear, kind
+explanation), not for arithmetic.
 
 Safety boundary (kept intentional, per the doc): CareCompanion NEVER
 gives medication names, dosages, or drug interaction advice. Every
@@ -23,7 +24,7 @@ redirect medication questions to the patient's care team.
 import datetime
 
 from diagnose import diagnose, triage_from_percentage
-from utils import get_claude_client, CLAUDE_MODEL
+from utils import get_gemini_model
 import database as db
 
 
@@ -128,7 +129,7 @@ class TriageAgent:
 
 
 # ---------------------------------------------------------------------------
-# 4. Explainer Agent (Claude)
+# 4. Explainer Agent (Gemini)
 # ---------------------------------------------------------------------------
 
 class ExplainerAgent:
@@ -149,7 +150,7 @@ class ExplainerAgent:
     )
 
     def explain(self, diagnosis_result: dict, patient_context: dict) -> str:
-        client = get_claude_client()
+        model = get_gemini_model()
 
         user_prompt = (
             f"Patient: {patient_context.get('name', 'the patient')}, "
@@ -161,17 +162,15 @@ class ExplainerAgent:
             f"for the patient."
         )
 
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=500,
-            system=self.SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
+        response = model.generate_content(
+            [self.SYSTEM_PROMPT, user_prompt],
+            generation_config={"max_output_tokens": 500},
         )
-        return "".join(block.text for block in response.content if block.type == "text")
+        return response.text
 
 
 # ---------------------------------------------------------------------------
-# 5. CareCompanion Agent (Claude)
+# 5. CareCompanion Agent (Gemini)
 # ---------------------------------------------------------------------------
 
 class CareCompanionAgent:
@@ -190,17 +189,7 @@ class CareCompanionAgent:
     )
 
     def chat(self, patient_id: int, user_message: str, patient_context: dict = None) -> str:
-        client = get_claude_client()
         patient_context = patient_context or {}
-
-        history = db.get_chat_history(patient_id, limit=20)
-        messages = []
-        for turn in history:
-            if turn["user_message"]:
-                messages.append({"role": "user", "content": turn["user_message"]})
-            if turn["claude_response"]:
-                messages.append({"role": "assistant", "content": turn["claude_response"]})
-        messages.append({"role": "user", "content": user_message})
 
         context_note = ""
         latest = db.get_latest_screening(patient_id)
@@ -211,13 +200,30 @@ class CareCompanionAgent:
                 f"triage category '{latest['triage_result']}'.]"
             )
 
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=500,
-            system=self.SYSTEM_PROMPT + context_note,
-            messages=messages,
+        model = get_gemini_model()
+        # Gemini takes the system prompt at model-init time, not per-call,
+        # so we re-instantiate with it folded in (cheap: no network call
+        # happens until generate_content()/send_message() below).
+        import google.generativeai as genai
+        model = genai.GenerativeModel(
+            model.model_name,
+            system_instruction=self.SYSTEM_PROMPT + context_note,
         )
-        reply = "".join(block.text for block in response.content if block.type == "text")
+
+        history = db.get_chat_history(patient_id, limit=20)
+        gemini_history = []
+        for turn in history:
+            if turn["user_message"]:
+                gemini_history.append({"role": "user", "parts": [turn["user_message"]]})
+            if turn["claude_response"]:
+                gemini_history.append({"role": "model", "parts": [turn["claude_response"]]})
+
+        chat_session = model.start_chat(history=gemini_history)
+        response = chat_session.send_message(
+            user_message,
+            generation_config={"max_output_tokens": 500},
+        )
+        reply = response.text
 
         db.add_chat_message(patient_id, user_message, reply)
         return reply
