@@ -9,8 +9,8 @@ before your teammate wires up the frontend pages.
 Requires:
   - models/stenosis_regressor.joblib and triage_classifier.joblib
     (run `python train_model.py` first)
-  - ANTHROPIC_API_KEY set as an environment variable, e.g.:
-        export ANTHROPIC_API_KEY=sk-ant-...
+  - GEMINI_API_KEY set as an environment variable, e.g.:
+        export GEMINI_API_KEY=AIza...
         python test_pipeline.py
     (Explainer/CareCompanion steps are skipped gracefully if it's not set,
     so you can still verify the ML layer + database layer on their own.)
@@ -109,9 +109,9 @@ def main():
         triage_result=triage_result["final_triage"],
     )
 
-    print("\n[6/6] Explainer + CareCompanion Agents (Claude API)...")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("      ANTHROPIC_API_KEY not set — skipping Claude calls. "
+    print("\n[6/6] Explainer + CareCompanion Agents (Gemini API)...")
+    if not os.environ.get("GEMINI_API_KEY"):
+        print("      GEMINI_API_KEY not set — skipping Gemini calls. "
               "Set it and re-run to test the Explainer/CareCompanion agents.")
     else:
         from agents import ExplainerAgent, CareCompanionAgent
