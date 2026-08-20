@@ -240,7 +240,8 @@ def run_full_pipeline(patient_data: dict, patient_input: dict) -> dict:
     triage = TriageAgent()
     explainer = ExplainerAgent()
 
-    patient_id = intake.intake(patient_data)
+    intake_payload = {**patient_data, **patient_input}
+    patient_id = intake.intake(intake_payload)
 
     diagnosis_result = diagnostic.run(patient_input)
     if "error" in diagnosis_result and "stenosis_percentage" not in diagnosis_result:
