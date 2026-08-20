@@ -35,7 +35,10 @@ TRIAGE_THRESHOLDS = {
     "NON-URGENT / STABLE": 0,
 }
 
-CLAUDE_MODEL = "claude-sonnet-4-6"
+# Free-tier Gemini model. "gemini-1.5-flash" is the free/low-cost tier as
+# of this writing; check https://ai.google.dev/pricing if Google changes
+# their lineup and swap the name here only — nothing else needs to change.
+GEMINI_MODEL = "gemini-1.5-flash"
 
 
 def get_secret(key: str, default=None):
@@ -53,20 +56,23 @@ def get_secret(key: str, default=None):
     return os.environ.get(key, default)
 
 
-def get_claude_client():
+def get_gemini_model():
     """
-    Returns an initialized anthropic.Anthropic client.
-    Expects ANTHROPIC_API_KEY in .streamlit/secrets.toml (Streamlit Cloud)
-    or as an environment variable (local dev).
+    Returns an initialized Gemini GenerativeModel.
+    Expects GEMINI_API_KEY in .streamlit/secrets.toml (Streamlit Cloud)
+    or as an environment variable (local dev). Get a free key at
+    https://aistudio.google.com/app/apikey
     """
-    import anthropic
-    api_key = get_secret("ANTHROPIC_API_KEY")
+    import google.generativeai as genai
+    api_key = get_secret("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY not found. Add it to .streamlit/secrets.toml "
-            "(local) or the app's Secrets panel (Streamlit Community Cloud)."
+            "GEMINI_API_KEY not found. Add it to .streamlit/secrets.toml "
+            "(local) or the app's Secrets panel (Streamlit Community Cloud). "
+            "Get a free key at https://aistudio.google.com/app/apikey"
         )
-    return anthropic.Anthropic(api_key=api_key)
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(GEMINI_MODEL)
 
 
 def ensure_dirs():
